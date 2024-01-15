@@ -1,3 +1,8 @@
+type SizedTexture = {
+  texture: WebGLTexture;
+  width: number;
+  height: number;
+}
 
 function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
   var shader = gl.createShader(type);
@@ -75,11 +80,12 @@ function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, widt
   gl.drawArrays(primitiveType, offset, count);
 }
 
-function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number): WebGLTexture {
+function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number): SizedTexture {
   const targetTexture = gl.createTexture();
   if (targetTexture == null) {
     throw new Error("Failed to create texture");
   }
+  gl.bindTexture(gl.TEXTURE_2D, targetTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
@@ -92,23 +98,44 @@ function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProg
   gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, 0);
 
   runShaderProgram(gl, program, width, height);
-  return targetTexture;
+  return {texture: targetTexture, width: width, height: height};
 }
 
-function renderTextureToCanvas(gl: WebGLRenderingContext, texture: WebGLTexture, canvas: HTMLCanvasElement): void {
-  const pixels = new Uint8Array(canvas.width * canvas.height * 4);
-  gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, canvas: HTMLCanvasElement): void {
+  // Ensure the canvas dimensions match the texture dimensions
+  canvas.width = stex.width;
+  canvas.height = stex.height;
+
+  gl.bindTexture(gl.TEXTURE_2D, stex.texture);
+  console.log('bound texture2');
+
+  // Create and bind a framebuffer
+  const framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+  // Attach the texture to the framebuffer
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, stex.texture, 0);
+
+  // Check if the framebuffer is complete
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+    throw new Error("Framebuffer is not complete");
+  }
+  const pixels = new Uint8Array(stex.width * stex.height * 4);
+  gl.readPixels(0, 0, stex.width, stex.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
   const ctx = canvas.getContext("2d");
   if (ctx == null) {
     throw new Error("Failed to get 2d context");
   }
-  const imageData = new ImageData(new Uint8ClampedArray(pixels), canvas.width, canvas.height);
+  const imageData = new ImageData(new Uint8ClampedArray(pixels), stex.width, stex.height);
   ctx.putImageData(imageData, 0, 0);
 }
 
 function main(): void {
-  var canvas = document.getElementById("webgl-canvas") as HTMLCanvasElement;
-  var gl = canvas.getContext("webgl");
+  var webglCanvas = document.getElementById("webgl-canvas") as HTMLCanvasElement;
+  var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
+  var width = 500;
+  var height = 500;
+  var gl = webglCanvas.getContext("webgl");
   if (!gl) {
     return;
   }
@@ -132,11 +159,11 @@ function main(): void {
   var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   var program = createProgram(gl, vertexShader, fragmentShader);
-
-  var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-
-  runShaderProgram(gl, program, gl.canvas.width, gl.canvas.height);
-  return;
+  // runShaderProgram(gl, program, gl.canvas.width, gl.canvas.height);
+  console.log('to texture...');
+  var stex = runShaderProgramToTexture(gl, program, width, height);
+  console.log('to canvas...');
+  renderTextureToCanvas(gl, stex, drawCanvas);
 }
 
 main();
