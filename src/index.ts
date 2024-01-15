@@ -1,3 +1,5 @@
+type GLCtx = WebGL2RenderingContext;
+
 type SizedTexture = {
   texture: WebGLTexture;
   width: number;
@@ -11,16 +13,16 @@ type ShaderParameters = {
 }
 
 
-function newGLContext(): WebGLRenderingContext {
+function newGLContext(): GLCtx {
   var canvas = document.createElement("canvas");
-  var gl = canvas.getContext("webgl");
+  var gl = canvas.getContext("webgl2");
   if (!gl) {
     throw new Error("Failed to get webgl context");
   }
   return gl;
 }
 
-function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
+function createShader(gl: GLCtx, type: number, source: string): WebGLShader {
   var shader = gl.createShader(type);
   if (shader == null) {
     throw new Error("Failed to create shader");
@@ -38,7 +40,7 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string): 
   throw new Error("Failed to compile shader");
 }
 
-function getSquareVertexShader(gl: WebGLRenderingContext): WebGLShader {
+function getSquareVertexShader(gl: GLCtx): WebGLShader {
   var vertexShaderSource = `
     attribute vec4 a_position;
     void main() {
@@ -47,7 +49,7 @@ function getSquareVertexShader(gl: WebGLRenderingContext): WebGLShader {
   return createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 }
 
-function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
+function createProgram(gl: GLCtx, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
   var program = gl.createProgram();
   if (program == null) {
     throw new Error("Failed to create program");
@@ -66,14 +68,14 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
   throw new Error("Failed to compile program");
 }
 
-function createSquareProgram(gl: WebGLRenderingContext, fragmentShaderSource: string): WebGLProgram {
+function createSquareProgram(gl: GLCtx, fragmentShaderSource: string): WebGLProgram {
   var vertexShader = getSquareVertexShader(gl);
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   return createProgram(gl, vertexShader, fragmentShader);
 }
 
 // Set a rectangle that covers the NDC space
-function setRectangle(gl: WebGLRenderingContext) {
+function setRectangle(gl: GLCtx) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
     -1.0, -1.0,   // Bottom left
     1.0, -1.0,   // Bottom right
@@ -84,7 +86,7 @@ function setRectangle(gl: WebGLRenderingContext) {
   ]), gl.STATIC_DRAW);
 }
 
-function setupShaderParameters(gl: WebGLRenderingContext, params: ShaderParameters): void {
+function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void {
   const textureParams = params.textureParameters;
   if (textureParams) {
     const keys = Object.keys(textureParams);
@@ -117,13 +119,13 @@ function setupShaderParameters(gl: WebGLRenderingContext, params: ShaderParamete
   setParams(params.intParameters, gl.uniform1i.bind(gl));
 }
 
-function uniformDefined(gl: WebGLRenderingContext, name: string): boolean {
+function uniformDefined(gl: GLCtx, name: string): boolean {
   const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), name);
   return uniformLocation != null;
 }
 
 
-function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number, params: ShaderParameters = {}): void {
+function runShaderProgram(gl: GLCtx, program: WebGLProgram, width: number, height: number, params: ShaderParameters = {}): void {
   var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 
   var positionBuffer = gl.createBuffer();
@@ -162,7 +164,7 @@ function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, widt
   gl.drawArrays(primitiveType, offset, count);
 }
 
-function newTexture(gl: WebGLRenderingContext, width: number, height: number): SizedTexture {
+function newTexture(gl: GLCtx, width: number, height: number): SizedTexture {
   const targetTexture = gl.createTexture();
   if (targetTexture == null) {
     throw new Error("Failed to create texture");
@@ -175,7 +177,7 @@ function newTexture(gl: WebGLRenderingContext, width: number, height: number): S
   return {texture: targetTexture, width: width, height: height};
 }
 
-function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {
+function runShaderProgramToTexture(gl: GLCtx, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {
 
   const fb = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -186,7 +188,7 @@ function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProg
   runShaderProgram(gl, program, target.width, target.height, params);
 }
 
-function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, canvas: HTMLCanvasElement): void {
+function renderTextureToCanvas(gl: GLCtx, stex: SizedTexture, canvas: HTMLCanvasElement): void {
   // Ensure the canvas dimensions match the texture dimensions
   canvas.width = stex.width;
   canvas.height = stex.height;
@@ -215,7 +217,7 @@ function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, ca
   ctx.putImageData(imageData, 0, 0);
 }
 
-function renderSolidColorTexture(gl: WebGLRenderingContext, stex: SizedTexture, color: number[]): void {
+function renderSolidColorTexture(gl: GLCtx, stex: SizedTexture, color: number[]): void {
   // var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
@@ -231,7 +233,7 @@ function renderSolidColorTexture(gl: WebGLRenderingContext, stex: SizedTexture, 
   runShaderProgramToTexture(gl, program, stex, params);
 }
 
-function renderInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture, target: SizedTexture): void {
+function renderInverseTexture(gl: GLCtx, stex: SizedTexture, target: SizedTexture): void {
   // var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
