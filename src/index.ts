@@ -7,6 +7,7 @@ type SizedTexture = {
 type ShaderParameters = {
   textureParameters?: Record<string, SizedTexture>;
   vec4Parameters?: Record<string, number[]>;
+  intParameters?: Record<string, number>;
 }
 
 
@@ -95,17 +96,42 @@ function setupShaderParameters(gl: WebGLRenderingContext, params: ShaderParamete
       gl.uniform1i(uniformLocation, ix);
     }
   }
-  const vec4Params = params.vec4Parameters;
-  if (vec4Params) {
-    for (var vec4Name in vec4Params) {
-      const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), vec4Name);
-      if (uniformLocation == null) {
-        throw new Error("Failed to get uniform location for " + vec4Name);
+  function setParams<T>(params: Record<string, T> | undefined, glFunc: (loc: WebGLUniformLocation, val: T) => void): void {
+    if (params) {
+      for (var name in params) {
+        const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), name);
+        if (uniformLocation == null) {
+          throw new Error("Failed to get uniform location for " + name);
+        }
+        glFunc(uniformLocation, params[name]);
       }
-      gl.uniform4fv(uniformLocation, vec4Params[vec4Name]);
     }
   }
+  setParams(params.vec4Parameters, gl.uniform4fv.bind(gl));
+  setParams(params.intParameters, gl.uniform1i.bind(gl));
+
+  // const vec4Params = params.vec4Parameters;
+  // if (vec4Params) {
+  //   for (var vec4Name in vec4Params) {
+  //     const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), vec4Name);
+  //     if (uniformLocation == null) {
+  //       throw new Error("Failed to get uniform location for " + vec4Name);
+  //     }
+  //     gl.uniform4fv(uniformLocation, vec4Params[vec4Name]);
+  //   }
+  // }
+  // const intParams = params.intParameters;
+  // if (intParams) {
+  //   for (var intName in intParams) {
+  //     const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), intName);
+  //     if (uniformLocation == null) {
+  //       throw new Error("Failed to get uniform location for " + intName);
+  //     }
+  //     gl.uniform1i(uniformLocation, intParams[intName]);
+  //   }
+  // }
 }
+
 
 function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number, params: ShaderParameters = {}): void {
   var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
@@ -202,6 +228,22 @@ function getSolidColorTexture(gl: WebGLRenderingContext, width: number, height: 
   return runShaderProgramToTexture(gl, program, width, height, params);
 }
 
+function getInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture): SizedTexture {
+  var vertexShader = getSquareVertexShader(gl);
+  var fragmentShaderSource = `
+    precision mediump float;
+    uniform sampler2D u_texture;
+    void main() {
+        vec4 color = texture2D(u_texture, gl_FragCoord);
+        gl_FragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, 1.0);
+    }
+    `;
+  var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  var program = createProgram(gl, vertexShader, fragmentShader);
+  var params = {textureParameters: {u_texture: stex}};
+  return runShaderProgramToTexture(gl, program, stex.width, stex.height, params);
+}
+
 
 function main(): void {
   var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
@@ -224,6 +266,7 @@ function main(): void {
   console.log('to texture...');
   // var stex = runShaderProgramToTexture(gl, program, width, height);
   var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
+  // stex = getInverseTexture(gl, stex);
   console.log('to canvas...');
   renderTextureToCanvas(gl, stex, drawCanvas);
 }
