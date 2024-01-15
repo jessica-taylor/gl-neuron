@@ -219,36 +219,32 @@ function renderTextureToCanvas(gl: GLCtx, stex: SizedTexture, canvas: HTMLCanvas
 }
 
 function renderSolidColorTexture(gl: GLCtx, stex: SizedTexture, color: number[]): void {
-  // var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
     uniform vec4 u_color;
+    out vec4 fragColor;
     void main() {
-        gl_FragColor = u_color;
+        fragColor = u_color;
     }
     `;
   var program = createSquareProgram(gl, fragmentShaderSource);
-  // var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-  // var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {vec4Parameters: {u_color: color}};
   runShaderProgramToTexture(gl, program, stex, params);
 }
 
 function renderInverseTexture(gl: GLCtx, stex: SizedTexture, target: SizedTexture): void {
-  // var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
+    out vec4 fragColor;
     uniform int target_width;
     uniform int target_height;
     uniform sampler2D u_texture;
     void main() {
-        vec4 color = texture2D(u_texture, vec2(gl_FragCoord.x / float(target_width), gl_FragCoord.y / float(target_height)));
-        gl_FragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, 1.0);
+        vec4 color = texture(u_texture, vec2(gl_FragCoord.x / float(target_width), gl_FragCoord.y / float(target_height)));
+        fragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, 1.0);
     }
     `;
   var program = createSquareProgram(gl, fragmentShaderSource);
-  // var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-  // var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {textureParameters: {u_texture: stex}};
   runShaderProgramToTexture(gl, program, target, params);
 }
@@ -285,18 +281,18 @@ function perfTest(): void {
 
 
 function main(): void {
-  perfTest();
-  // var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
-  // var width = 500;
-  // var height = 500;
-  // var gl = newGLContext();
+  // perfTest();
+  var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
+  var width = 500;
+  var height = 500;
+  var gl = newGLContext();
 
-  // var solidTexture = newTexture(gl, width, height);
-  // renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
-  // var inverseTexture = newTexture(gl, width, height);
-  // renderInverseTexture(gl, solidTexture, inverseTexture);
-  // console.log('to canvas...');
-  // renderTextureToCanvas(gl, inverseTexture, drawCanvas);
+  var solidTexture = newTexture(gl, width, height);
+  renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
+  var inverseTexture = newTexture(gl, width, height);
+  renderInverseTexture(gl, solidTexture, inverseTexture);
+  console.log('to canvas...');
+  renderTextureToCanvas(gl, inverseTexture, drawCanvas);
 }
 
 main();
