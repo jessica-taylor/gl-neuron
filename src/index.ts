@@ -66,6 +66,12 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
   throw new Error("Failed to compile program");
 }
 
+function createSquareProgram(gl: WebGLRenderingContext, fragmentShaderSource: string): WebGLProgram {
+  var vertexShader = getSquareVertexShader(gl);
+  var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  return createProgram(gl, vertexShader, fragmentShader);
+}
+
 // Set a rectangle that covers the NDC space
 function setRectangle(gl: WebGLRenderingContext) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -210,7 +216,7 @@ function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, ca
 }
 
 function renderSolidColorTexture(gl: WebGLRenderingContext, stex: SizedTexture, color: number[]): void {
-  var vertexShader = getSquareVertexShader(gl);
+  // var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
     uniform vec4 u_color;
@@ -218,14 +224,15 @@ function renderSolidColorTexture(gl: WebGLRenderingContext, stex: SizedTexture, 
         gl_FragColor = u_color;
     }
     `;
-  var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-  var program = createProgram(gl, vertexShader, fragmentShader);
+  var program = createSquareProgram(gl, fragmentShaderSource);
+  // var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  // var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {vec4Parameters: {u_color: color}};
   runShaderProgramToTexture(gl, program, stex, params);
 }
 
 function renderInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture, target: SizedTexture): void {
-  var vertexShader = getSquareVertexShader(gl);
+  // var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
     uniform int target_width;
@@ -236,26 +243,55 @@ function renderInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture, tar
         gl_FragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, 1.0);
     }
     `;
-  var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-  var program = createProgram(gl, vertexShader, fragmentShader);
+  var program = createSquareProgram(gl, fragmentShaderSource);
+  // var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  // var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {textureParameters: {u_texture: stex}};
   runShaderProgramToTexture(gl, program, target, params);
 }
 
-
-function main(): void {
+function perfTest(): void {
   var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
   var width = 500;
   var height = 500;
   var gl = newGLContext();
 
-  var solidTexture = newTexture(gl, width, height);
-  renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
-  // var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
-  var inverseTexture = newTexture(gl, width, height);
-  renderInverseTexture(gl, solidTexture, inverseTexture);
-  console.log('to canvas...');
-  renderTextureToCanvas(gl, inverseTexture, drawCanvas);
+  var fragmentShaderSource = `
+    precision highp float;
+    uniform int target_width;
+    uniform int target_height;
+    void main() {
+      float x = gl_FragCoord.x + gl_FragCoord.y * 1111.11;
+      for (int i = 0; i < 1000000; ++i) {
+        x = x * x;
+        x = x - 1000.0 * floor(x / 1000.0);
+      }
+      gl_FragColor = vec4(x / 1000.0, 0.0, 0.0, 1.0);
+    }
+    `;
+  var program = createSquareProgram(gl, fragmentShaderSource);
+  var startTime = performance.now();
+  var texture = newTexture(gl, width, height);
+  runShaderProgramToTexture(gl, program, texture);
+  renderTextureToCanvas(gl, texture, drawCanvas);
+  var endTime = performance.now();
+  console.log('time: ' + (endTime - startTime));
+}
+
+
+function main(): void {
+  perfTest();
+  // var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
+  // var width = 500;
+  // var height = 500;
+  // var gl = newGLContext();
+
+  // var solidTexture = newTexture(gl, width, height);
+  // renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
+  // var inverseTexture = newTexture(gl, width, height);
+  // renderInverseTexture(gl, solidTexture, inverseTexture);
+  // console.log('to canvas...');
+  // renderTextureToCanvas(gl, inverseTexture, drawCanvas);
 }
 
 main();
