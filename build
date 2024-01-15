@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+g++ -o shader_example main.cpp -lGL -lGLEW -lglfw
