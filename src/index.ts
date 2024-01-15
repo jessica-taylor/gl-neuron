@@ -109,27 +109,11 @@ function setupShaderParameters(gl: WebGLRenderingContext, params: ShaderParamete
   }
   setParams(params.vec4Parameters, gl.uniform4fv.bind(gl));
   setParams(params.intParameters, gl.uniform1i.bind(gl));
+}
 
-  // const vec4Params = params.vec4Parameters;
-  // if (vec4Params) {
-  //   for (var vec4Name in vec4Params) {
-  //     const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), vec4Name);
-  //     if (uniformLocation == null) {
-  //       throw new Error("Failed to get uniform location for " + vec4Name);
-  //     }
-  //     gl.uniform4fv(uniformLocation, vec4Params[vec4Name]);
-  //   }
-  // }
-  // const intParams = params.intParameters;
-  // if (intParams) {
-  //   for (var intName in intParams) {
-  //     const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), intName);
-  //     if (uniformLocation == null) {
-  //       throw new Error("Failed to get uniform location for " + intName);
-  //     }
-  //     gl.uniform1i(uniformLocation, intParams[intName]);
-  //   }
-  // }
+function uniformDefined(gl: WebGLRenderingContext, name: string): boolean {
+  const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), name);
+  return uniformLocation != null;
 }
 
 
@@ -148,6 +132,15 @@ function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, widt
   gl.enableVertexAttribArray(positionAttributeLocation);
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
+  if (!params.intParameters) {
+    params.intParameters = {};
+  }
+  if (uniformDefined(gl, 'target_width')) {
+    params.intParameters.target_width = width;
+  }
+  if (uniformDefined(gl, 'target_height')) {
+    params.intParameters.target_height = height;
+  }
   setupShaderParameters(gl, params);
 
   var size = 2;          // 2 components per iteration
@@ -232,9 +225,11 @@ function getInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture): Sized
   var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
+    uniform int target_width;
+    uniform int target_height;
     uniform sampler2D u_texture;
     void main() {
-        vec4 color = texture2D(u_texture, gl_FragCoord);
+        vec4 color = texture2D(u_texture, vec2(gl_FragCoord.x / float(target_width), gl_FragCoord.y / float(target_height)));
         gl_FragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, 1.0);
     }
     `;
@@ -266,7 +261,7 @@ function main(): void {
   console.log('to texture...');
   // var stex = runShaderProgramToTexture(gl, program, width, height);
   var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
-  // stex = getInverseTexture(gl, stex);
+  stex = getInverseTexture(gl, stex);
   console.log('to canvas...');
   renderTextureToCanvas(gl, stex, drawCanvas);
 }
