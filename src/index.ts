@@ -4,6 +4,21 @@ type SizedTexture = {
   height: number;
 }
 
+type ShaderParameters = {
+  textureParameters?: Record<string, SizedTexture>;
+  vec4Parameters?: Record<string, number[]>;
+}
+
+
+function newGLContext(): WebGLRenderingContext {
+  var canvas = document.createElement("canvas");
+  var gl = canvas.getContext("webgl");
+  if (!gl) {
+    throw new Error("Failed to get webgl context");
+  }
+  return gl;
+}
+
 function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
   var shader = gl.createShader(type);
   if (shader == null) {
@@ -20,6 +35,15 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string): 
   console.log(gl.getShaderInfoLog(shader));
   gl.deleteShader(shader);
   throw new Error("Failed to compile shader");
+}
+
+function getSquareVertexShader(gl: WebGLRenderingContext): WebGLShader {
+  var vertexShaderSource = `
+    attribute vec4 a_position;
+    void main() {
+        gl_Position = a_position;
+    } `;
+  return createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 }
 
 function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
@@ -53,7 +77,37 @@ function setRectangle(gl: WebGLRenderingContext) {
   ]), gl.STATIC_DRAW);
 }
 
-function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number): void {
+function setupShaderParameters(gl: WebGLRenderingContext, params: ShaderParameters): void {
+  const textureParams = params.textureParameters;
+  if (textureParams) {
+    const keys = Object.keys(textureParams);
+    keys.sort();
+    for (var i = 0; i < keys.length; i++) {
+      const texName = keys[i];
+      const stex = textureParams[texName];
+      const ix = i + 1;
+      gl.activeTexture(gl.TEXTURE0 + ix);
+      gl.bindTexture(gl.TEXTURE_2D, stex.texture);
+      const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), texName);
+      if (uniformLocation == null) {
+        throw new Error("Failed to get uniform location for " + texName);
+      }
+      gl.uniform1i(uniformLocation, ix);
+    }
+  }
+  const vec4Params = params.vec4Parameters;
+  if (vec4Params) {
+    for (var vec4Name in vec4Params) {
+      const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), vec4Name);
+      if (uniformLocation == null) {
+        throw new Error("Failed to get uniform location for " + vec4Name);
+      }
+      gl.uniform4fv(uniformLocation, vec4Params[vec4Name]);
+    }
+  }
+}
+
+function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number, params: ShaderParameters = {}): void {
   var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 
   var positionBuffer = gl.createBuffer();
@@ -67,6 +121,9 @@ function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, widt
 
   gl.enableVertexAttribArray(positionAttributeLocation);
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+  setupShaderParameters(gl, params);
+
   var size = 2;          // 2 components per iteration
   var type = gl.FLOAT;   // the data is 32bit floats
   var normalize = false; // don't normalize the data
@@ -80,7 +137,7 @@ function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, widt
   gl.drawArrays(primitiveType, offset, count);
 }
 
-function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number): SizedTexture {
+function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number, params: ShaderParameters = {}): SizedTexture {
   const targetTexture = gl.createTexture();
   if (targetTexture == null) {
     throw new Error("Failed to create texture");
@@ -97,7 +154,7 @@ function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProg
   const attachmentPoint = gl.COLOR_ATTACHMENT0;
   gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, 0);
 
-  runShaderProgram(gl, program, width, height);
+  runShaderProgram(gl, program, width, height, params);
   return {texture: targetTexture, width: width, height: height};
 }
 
@@ -130,23 +187,27 @@ function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, ca
   ctx.putImageData(imageData, 0, 0);
 }
 
+function getSolidColorTexture(gl: WebGLRenderingContext, width: number, height: number, color: number[]): SizedTexture {
+  var vertexShader = getSquareVertexShader(gl);
+  var fragmentShaderSource = `
+    precision mediump float;
+    uniform vec4 u_color;
+    void main() {
+        gl_FragColor = u_color;
+    }
+    `;
+  var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  var program = createProgram(gl, vertexShader, fragmentShader);
+  var params = {vec4Parameters: {u_color: color}};
+  return runShaderProgramToTexture(gl, program, width, height, params);
+}
+
+
 function main(): void {
-  var webglCanvas = document.getElementById("webgl-canvas") as HTMLCanvasElement;
   var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
   var width = 500;
   var height = 500;
-  var gl = webglCanvas.getContext("webgl");
-  if (!gl) {
-    return;
-  }
-
-  // Vertex shader program
-  var vertexShaderSource = `
-    attribute vec4 a_position;
-    void main() {
-        gl_Position = a_position;
-    }
-    `;
+  var gl = newGLContext();
 
   // Fragment shader program
   var fragmentShaderSource = `
@@ -156,12 +217,13 @@ function main(): void {
     }
     `;
 
-  var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+  var vertexShader = getSquareVertexShader(gl);
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   var program = createProgram(gl, vertexShader, fragmentShader);
   // runShaderProgram(gl, program, gl.canvas.width, gl.canvas.height);
   console.log('to texture...');
-  var stex = runShaderProgramToTexture(gl, program, width, height);
+  // var stex = runShaderProgramToTexture(gl, program, width, height);
+  var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
   console.log('to canvas...');
   renderTextureToCanvas(gl, stex, drawCanvas);
 }
