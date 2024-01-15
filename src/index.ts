@@ -156,7 +156,7 @@ function runShaderProgram(gl: WebGLRenderingContext, program: WebGLProgram, widt
   gl.drawArrays(primitiveType, offset, count);
 }
 
-function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, width: number, height: number, params: ShaderParameters = {}): SizedTexture {
+function newTexture(gl: WebGLRenderingContext, width: number, height: number): SizedTexture {
   const targetTexture = gl.createTexture();
   if (targetTexture == null) {
     throw new Error("Failed to create texture");
@@ -166,15 +166,18 @@ function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProg
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
+  return {texture: targetTexture, width: width, height: height};
+}
+
+function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}) {
 
   const fb = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
 
   const attachmentPoint = gl.COLOR_ATTACHMENT0;
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, 0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, target.texture, 0);
 
-  runShaderProgram(gl, program, width, height, params);
-  return {texture: targetTexture, width: width, height: height};
+  runShaderProgram(gl, program, target.width, target.height, params);
 }
 
 function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, canvas: HTMLCanvasElement): void {
@@ -207,6 +210,7 @@ function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, ca
 }
 
 function getSolidColorTexture(gl: WebGLRenderingContext, width: number, height: number, color: number[]): SizedTexture {
+  const targetStex = newTexture(gl, width, height);
   var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
@@ -218,10 +222,12 @@ function getSolidColorTexture(gl: WebGLRenderingContext, width: number, height: 
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {vec4Parameters: {u_color: color}};
-  return runShaderProgramToTexture(gl, program, width, height, params);
+  runShaderProgramToTexture(gl, program, targetStex, params);
+  return targetStex;
 }
 
 function getInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture): SizedTexture {
+  const targetStex = newTexture(gl, stex.width, stex.height);
   var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
@@ -236,7 +242,8 @@ function getInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture): Sized
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {textureParameters: {u_texture: stex}};
-  return runShaderProgramToTexture(gl, program, stex.width, stex.height, params);
+  runShaderProgramToTexture(gl, program, targetStex, params);
+  return targetStex;
 }
 
 
@@ -246,20 +253,6 @@ function main(): void {
   var height = 500;
   var gl = newGLContext();
 
-  // Fragment shader program
-  var fragmentShaderSource = `
-    precision mediump float;
-    void main() {
-        gl_FragColor = vec4(1, 0, 0.5, 1);  // Purple color
-    }
-    `;
-
-  var vertexShader = getSquareVertexShader(gl);
-  var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-  var program = createProgram(gl, vertexShader, fragmentShader);
-  // runShaderProgram(gl, program, gl.canvas.width, gl.canvas.height);
-  console.log('to texture...');
-  // var stex = runShaderProgramToTexture(gl, program, width, height);
   var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
   stex = getInverseTexture(gl, stex);
   console.log('to canvas...');
