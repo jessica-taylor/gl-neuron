@@ -23,6 +23,7 @@ function newGLContext(): GLCtx {
 }
 
 function createShader(gl: GLCtx, type: number, source: string): WebGLShader {
+  source = '#version 300 es\n' + source;
   var shader = gl.createShader(type);
   if (shader == null) {
     throw new Error("Failed to create shader");
@@ -42,7 +43,7 @@ function createShader(gl: GLCtx, type: number, source: string): WebGLShader {
 
 function getSquareVertexShader(gl: GLCtx): WebGLShader {
   var vertexShaderSource = `
-    attribute vec4 a_position;
+    in vec4 a_position;
     void main() {
         gl_Position = a_position;
     } `;
@@ -260,6 +261,8 @@ function perfTest(): void {
 
   var fragmentShaderSource = `
     precision highp float;
+    out vec4 fragColor;
+
     uniform int target_width;
     uniform int target_height;
     void main() {
@@ -268,7 +271,7 @@ function perfTest(): void {
         x = x * x;
         x = x - 1000.0 * floor(x / 1000.0);
       }
-      gl_FragColor = vec4(x / 1000.0, 0.0, 0.0, 1.0);
+      fragColor = vec4(x / 1000.0, 0.0, 0.0, 1.0);
     }
     `;
   var program = createSquareProgram(gl, fragmentShaderSource);
