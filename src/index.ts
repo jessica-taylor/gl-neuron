@@ -169,7 +169,7 @@ function newTexture(gl: WebGLRenderingContext, width: number, height: number): S
   return {texture: targetTexture, width: width, height: height};
 }
 
-function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}) {
+function runShaderProgramToTexture(gl: WebGLRenderingContext, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {
 
   const fb = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -209,8 +209,7 @@ function renderTextureToCanvas(gl: WebGLRenderingContext, stex: SizedTexture, ca
   ctx.putImageData(imageData, 0, 0);
 }
 
-function getSolidColorTexture(gl: WebGLRenderingContext, width: number, height: number, color: number[]): SizedTexture {
-  const targetStex = newTexture(gl, width, height);
+function renderSolidColorTexture(gl: WebGLRenderingContext, stex: SizedTexture, color: number[]): void {
   var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
@@ -222,12 +221,10 @@ function getSolidColorTexture(gl: WebGLRenderingContext, width: number, height: 
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {vec4Parameters: {u_color: color}};
-  runShaderProgramToTexture(gl, program, targetStex, params);
-  return targetStex;
+  runShaderProgramToTexture(gl, program, stex, params);
 }
 
-function getInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture): SizedTexture {
-  const targetStex = newTexture(gl, stex.width, stex.height);
+function renderInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture, target: SizedTexture): void {
   var vertexShader = getSquareVertexShader(gl);
   var fragmentShaderSource = `
     precision mediump float;
@@ -242,8 +239,7 @@ function getInverseTexture(gl: WebGLRenderingContext, stex: SizedTexture): Sized
   var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
   var program = createProgram(gl, vertexShader, fragmentShader);
   var params = {textureParameters: {u_texture: stex}};
-  runShaderProgramToTexture(gl, program, targetStex, params);
-  return targetStex;
+  runShaderProgramToTexture(gl, program, target, params);
 }
 
 
@@ -253,10 +249,13 @@ function main(): void {
   var height = 500;
   var gl = newGLContext();
 
-  var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
-  stex = getInverseTexture(gl, stex);
+  var solidTexture = newTexture(gl, width, height);
+  renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
+  // var stex = getSolidColorTexture(gl, width, height, [1, 0, 0, 1]);
+  var inverseTexture = newTexture(gl, width, height);
+  renderInverseTexture(gl, solidTexture, inverseTexture);
   console.log('to canvas...');
-  renderTextureToCanvas(gl, stex, drawCanvas);
+  renderTextureToCanvas(gl, inverseTexture, drawCanvas);
 }
 
 main();
