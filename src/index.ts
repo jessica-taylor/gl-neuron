@@ -256,7 +256,7 @@ function perfTest(): void {
   var gl = newGLContext();
 
   var fragmentShaderSource = `
-    precision highp float;
+    precision lowp float;
     out vec4 fragColor;
 
     uniform int target_width;
@@ -265,7 +265,7 @@ function perfTest(): void {
       float x = gl_FragCoord.x + gl_FragCoord.y * 1111.11;
       for (int i = 0; i < 1000000; ++i) {
         x = x * x;
-        x = x - 1000.0 * floor(x / 1000.0);
+        // x = x - 1000.0 * floor(x / 1000.0);
       }
       fragColor = vec4(x / 1000.0, 0.0, 0.0, 1.0);
     }
@@ -281,11 +281,14 @@ function perfTest(): void {
 
 
 function main(): void {
-  // perfTest();
+  perfTest();
+  return;
   var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
   var width = 500;
   var height = 500;
   var gl = newGLContext();
+
+  console.log('max texture size', gl.getParameter(gl.MAX_TEXTURE_SIZE), '3d', gl.getParameter(gl.MAX_3D_TEXTURE_SIZE));
 
   var solidTexture = newTexture(gl, width, height);
   renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
