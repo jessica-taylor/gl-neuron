@@ -22,7 +22,7 @@ function renderInverseTexture(gl: GLCtx, stex: SizedTexture, target: SizedTextur
     uniform int target_height;
     uniform sampler2D u_texture;
     void main() {
-        vec4 color = texture(u_texture, vec2(gl_FragCoord.x / float(target_width), gl_FragCoord.y / float(target_height)));
+        vec4 color = texelFetch(u_texture, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
         fragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, 1.0);
     }
     `;
