@@ -111,21 +111,22 @@ export function setRectangle(gl: GLCtx) {
 }
 
 export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void {
-  const textureParams = params.textureParameters;
-  if (textureParams) {
-    const keys = Object.keys(textureParams);
-    keys.sort();
-    for (var i = 0; i < keys.length; i++) {
-      const texName = keys[i];
-      const stex = textureParams[texName];
-      const ix = i + 1;
-      gl.activeTexture(gl.TEXTURE0 + ix);
-      gl.bindTexture(gl.TEXTURE_2D, stex.texture);
-      const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), texName);
-      if (uniformLocation == null) {
-        throw new Error("Failed to get uniform location for " + texName);
+  function setTextureParams(params: Record<string, SizedTexture> | undefined, texType: number): void {
+    if (params) {
+      const keys = Object.keys(params);
+      keys.sort();
+      for (var i = 0; i < keys.length; i++) {
+        const texName = keys[i];
+        const stex = params[texName];
+        const ix = i + 1;
+        gl.activeTexture(gl.TEXTURE0 + ix);
+        gl.bindTexture(texType, stex.texture);
+        const uniformLocation = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), texName);
+        if (uniformLocation == null) {
+          throw new Error("Failed to get uniform location for " + texName);
+        }
+        gl.uniform1i(uniformLocation, ix);
       }
-      gl.uniform1i(uniformLocation, ix);
     }
   }
   function setParams<T>(params: Record<string, T> | undefined, glFunc: (loc: WebGLUniformLocation, val: T) => void): void {
@@ -139,6 +140,7 @@ export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void
       }
     }
   }
+  setTextureParams(params.textureParameters, gl.TEXTURE_2D); // TODO: support other texture types
   setParams(params.floatParameters, gl.uniform1f.bind(gl));
   setParams(params.vec2Parameters, gl.uniform2fv.bind(gl));
   setParams(params.vec3Parameters, gl.uniform3fv.bind(gl));
