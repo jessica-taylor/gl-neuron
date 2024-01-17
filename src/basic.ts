@@ -14,6 +14,7 @@ export type SizedTexture = {
   texture: WebGLTexture;
   width: number;
   height: number,
+  depth?: number;
   format: FormatConfig;
 }
 
@@ -210,6 +211,21 @@ export function newTexture(gl: GLCtx, width: number, height: number, formatCfg: 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
   return {texture: targetTexture, width, height, format: formatCfg, dimension: 2};
 }
+
+export function newTexture3D(gl: GLCtx, width: number, height: number, depth: number, formatCfg: FormatConfig): SizedTexture {
+  const targetTexture = gl.createTexture();
+  if (targetTexture == null) {
+    throw new Error("Failed to create texture");
+  }
+  gl.bindTexture(gl.TEXTURE_3D, targetTexture);
+  gl.texImage3D(gl.TEXTURE_3D, 0, formatCfg.internalFormat, width, height, depth, 0, formatCfg.format, formatCfg.numberType, null);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);  // Prevents r-coordinate wrapping (repeating).
+  return {texture: targetTexture, width, height, depth, format: formatCfg, dimension: 3};
+}
+
 
 export function runShaderProgramToTexture(gl: GLCtx, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {
 
