@@ -29,7 +29,6 @@ export type SizedTexture = {
 
 export type ShaderParameters = {
   textureParameters?: Record<string, SizedTexture>;
-  texture3DParameters?: Record<string, SizedTexture>;
   floatParameters?: Record<string, number>;
   vec2Parameters?: Record<string, number[]>;
   vec3Parameters?: Record<string, number[]>;
@@ -125,16 +124,14 @@ export function setRectangle(gl: GLCtx) {
 }
 
 export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void {
-  function setTextureParams(params: Record<string, SizedTexture> | undefined, texType: number): void {
+  function setTextureParams(params: Record<string, SizedTexture> | undefined): void {
     if (params) {
       const keys = Object.keys(params);
       keys.sort();
       for (var i = 0; i < keys.length; i++) {
         const texName = keys[i];
         const stex = params[texName];
-        if (textureDimensionToType(stex.dimension) != texType) {
-          throw new Error("Texture " + texName + " has dimension " + stex.dimension + " but expected " + texType);
-        }
+        const texType = textureDimensionToType(stex.dimension);
         const ix = i + 1;
         gl.activeTexture(gl.TEXTURE0 + ix);
         gl.bindTexture(texType, stex.texture);
@@ -157,8 +154,7 @@ export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void
       }
     }
   }
-  setTextureParams(params.textureParameters, gl.TEXTURE_2D);
-  setTextureParams(params.texture3DParameters, gl.TEXTURE_3D);
+  setTextureParams(params.textureParameters);
   setParams(params.floatParameters, gl.uniform1f.bind(gl));
   setParams(params.vec2Parameters, gl.uniform2fv.bind(gl));
   setParams(params.vec3Parameters, gl.uniform3fv.bind(gl));
