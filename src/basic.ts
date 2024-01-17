@@ -1,12 +1,17 @@
 
 export type GLCtx = WebGL2RenderingContext;
 
+export type FormatConfig = {
+  internalFormat: number;
+  format: number;
+  numberType: number;
+}
+
 export type SizedTexture = {
   texture: WebGLTexture;
   width: number;
-  height: number;
-  format: number,
-  numberType: number,
+  height: number,
+  format: FormatConfig;
 }
 
 export type ShaderParameters = {
@@ -14,6 +19,12 @@ export type ShaderParameters = {
   vec4Parameters?: Record<string, number[]>;
   intParameters?: Record<string, number>;
 }
+
+// see: https://registry.khronos.org/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
+export const FormatConfigs = {
+  rgb_byte: {internalFormat: WebGL2RenderingContext.RGB, format: WebGL2RenderingContext.RGB, numberType: WebGL2RenderingContext.UNSIGNED_BYTE},
+  rgba_byte: {internalFormat: WebGL2RenderingContext.RGBA, format: WebGL2RenderingContext.RGBA, numberType: WebGL2RenderingContext.UNSIGNED_BYTE},
+};
 
 
 export function newGLContext(): GLCtx {
@@ -168,17 +179,17 @@ export function runShaderProgram(gl: GLCtx, program: WebGLProgram, width: number
   gl.drawArrays(primitiveType, offset, count);
 }
 
-export function newTexture(gl: GLCtx, width: number, height: number, format: number, numberType: number): SizedTexture {
+export function newTexture(gl: GLCtx, width: number, height: number, formatCfg: FormatConfig): SizedTexture {
   const targetTexture = gl.createTexture();
   if (targetTexture == null) {
     throw new Error("Failed to create texture");
   }
   gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, numberType, null);
+  gl.texImage2D(gl.TEXTURE_2D, 0, formatCfg.internalFormat, width, height, 0, formatCfg.format, formatCfg.numberType, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
-  return {texture: targetTexture, width, height, format, numberType};
+  return {texture: targetTexture, width, height, format: formatCfg};
 }
 
 export function runShaderProgramToTexture(gl: GLCtx, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {

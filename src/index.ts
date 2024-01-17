@@ -1,4 +1,4 @@
-import {GLCtx, SizedTexture, newGLContext, createSquareProgram, newTexture, runShaderProgramToTexture, renderTextureToCanvas}  from './basic';
+import {GLCtx, SizedTexture, FormatConfigs, newGLContext, createSquareProgram, newTexture, runShaderProgramToTexture, renderTextureToCanvas}  from './basic';
 
 function renderSolidColorTexture(gl: GLCtx, stex: SizedTexture, color: number[]): void {
   var fragmentShaderSource = `
@@ -54,7 +54,7 @@ function perfTest(): void {
     `;
   var program = createSquareProgram(gl, fragmentShaderSource);
   var startTime = performance.now();
-  var texture = newTexture(gl, width, height, gl.RGBA, gl.UNSIGNED_BYTE);
+  var texture = newTexture(gl, width, height, FormatConfigs.rgba_byte);
   runShaderProgramToTexture(gl, program, texture);
   renderTextureToCanvas(gl, texture, drawCanvas);
   var endTime = performance.now();
@@ -63,8 +63,8 @@ function perfTest(): void {
 
 
 function main(): void {
-  perfTest();
-  return;
+  // perfTest();
+  // return;
   var drawCanvas = document.getElementById("draw-canvas") as HTMLCanvasElement;
   var width = 500;
   var height = 500;
@@ -72,9 +72,9 @@ function main(): void {
 
   console.log('max texture size', gl.getParameter(gl.MAX_TEXTURE_SIZE), '3d', gl.getParameter(gl.MAX_3D_TEXTURE_SIZE));
 
-  var solidTexture = newTexture(gl, width, height, gl.RGBA, gl.UNSIGNED_BYTE);
+  var solidTexture = newTexture(gl, width, height, FormatConfigs.rgba_byte);
   renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
-  var inverseTexture = newTexture(gl, width, height, gl.RGBA, gl.UNSIGNED_BYTE);
+  var inverseTexture = newTexture(gl, width, height, FormatConfigs.rgba_byte);
   renderInverseTexture(gl, solidTexture, inverseTexture);
   console.log('to canvas...');
   renderTextureToCanvas(gl, inverseTexture, drawCanvas);
