@@ -297,3 +297,19 @@ export function copyTexture(gl: GLCtx, source: SizedTexture, target: SizedTextur
   var params = {textureParameters: {u_texture: source}};
   runShaderProgramToTexture(gl, program, target, params);
 }
+
+export function mulTextureConst(gl: GLCtx, mul: number, source: SizedTexture, target: SizedTexture): void {
+  var program = createSquareProgram(gl, `
+    precision mediump float;
+    out vec4 fragColor;
+    uniform int target_width;
+    uniform int target_height;
+    uniform float mul;
+    uniform sampler2D u_texture;
+    void main() {
+        vec4 color = texelFetch(u_texture, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
+        fragColor = mul * vec4(color.r, color.g, color.b, color.a);
+    }`);
+  var params = {textureParameters: {u_texture: source}, floatParameters: {mul}};
+  runShaderProgramToTexture(gl, program, target, params);
+}

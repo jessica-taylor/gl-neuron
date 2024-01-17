@@ -1,4 +1,4 @@
-import {GLCtx, SizedTexture, FormatConfigs, newGLContext, createSquareProgram, newTexture, runShaderProgramToTexture, renderTextureToCanvas, copyTexture}  from './basic';
+import {GLCtx, SizedTexture, FormatConfigs, newGLContext, createSquareProgram, newTexture, runShaderProgramToTexture, renderTextureToCanvas, copyTexture, mulTextureConst}  from './basic';
 
 function renderSolidColorTexture(gl: GLCtx, stex: SizedTexture, color: number[]): void {
   var fragmentShaderSource = `
@@ -76,8 +76,10 @@ function main(): void {
   renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
   var inverseTexture = newTexture(gl, width, height, FormatConfigs.rg_float);
   renderInverseTexture(gl, solidTexture, inverseTexture);
+  var mulTexture = newTexture(gl, width, height, FormatConfigs.rg_float);
+  mulTextureConst(gl, 4.0, inverseTexture, mulTexture);
   var canvTexture = newTexture(gl, width, height, FormatConfigs.rg_byte);
-  copyTexture(gl, inverseTexture, canvTexture);
+  mulTextureConst(gl, 0.2, mulTexture, canvTexture);
 
   console.log('to canvas...');
   renderTextureToCanvas(gl, canvTexture, drawCanvas);
