@@ -1,6 +1,8 @@
 
 export type GLCtx = WebGL2RenderingContext;
 
+export type TextureDimension = 2 | 3;
+
 export type FormatConfig = {
   internalFormat: number;
   format: number;
@@ -8,6 +10,7 @@ export type FormatConfig = {
 }
 
 export type SizedTexture = {
+  dimension: TextureDimension;
   texture: WebGLTexture;
   width: number;
   height: number,
@@ -205,7 +208,7 @@ export function newTexture(gl: GLCtx, width: number, height: number, formatCfg: 
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
-  return {texture: targetTexture, width, height, format: formatCfg};
+  return {texture: targetTexture, width, height, format: formatCfg, dimension: 2};
 }
 
 export function runShaderProgramToTexture(gl: GLCtx, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {
