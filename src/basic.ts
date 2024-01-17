@@ -5,6 +5,8 @@ export type SizedTexture = {
   texture: WebGLTexture;
   width: number;
   height: number;
+  format: number,
+  numberType: number,
 }
 
 export type ShaderParameters = {
@@ -166,17 +168,17 @@ export function runShaderProgram(gl: GLCtx, program: WebGLProgram, width: number
   gl.drawArrays(primitiveType, offset, count);
 }
 
-export function newTexture(gl: GLCtx, width: number, height: number): SizedTexture {
+export function newTexture(gl: GLCtx, width: number, height: number, format: number, numberType: number): SizedTexture {
   const targetTexture = gl.createTexture();
   if (targetTexture == null) {
     throw new Error("Failed to create texture");
   }
   gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, numberType, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
-  return {texture: targetTexture, width: width, height: height};
+  return {texture: targetTexture, width, height, format, numberType};
 }
 
 export function runShaderProgramToTexture(gl: GLCtx, program: WebGLProgram, target: SizedTexture, params: ShaderParameters = {}): void {

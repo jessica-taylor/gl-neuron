@@ -54,7 +54,7 @@ function perfTest(): void {
     `;
   var program = createSquareProgram(gl, fragmentShaderSource);
   var startTime = performance.now();
-  var texture = newTexture(gl, width, height);
+  var texture = newTexture(gl, width, height, gl.RGBA, gl.UNSIGNED_BYTE);
   runShaderProgramToTexture(gl, program, texture);
   renderTextureToCanvas(gl, texture, drawCanvas);
   var endTime = performance.now();
@@ -72,9 +72,9 @@ function main(): void {
 
   console.log('max texture size', gl.getParameter(gl.MAX_TEXTURE_SIZE), '3d', gl.getParameter(gl.MAX_3D_TEXTURE_SIZE));
 
-  var solidTexture = newTexture(gl, width, height);
+  var solidTexture = newTexture(gl, width, height, gl.RGBA, gl.UNSIGNED_BYTE);
   renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
-  var inverseTexture = newTexture(gl, width, height);
+  var inverseTexture = newTexture(gl, width, height, gl.RGBA, gl.UNSIGNED_BYTE);
   renderInverseTexture(gl, solidTexture, inverseTexture);
   console.log('to canvas...');
   renderTextureToCanvas(gl, inverseTexture, drawCanvas);
