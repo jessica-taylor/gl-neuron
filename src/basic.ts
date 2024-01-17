@@ -3,6 +3,15 @@ export type GLCtx = WebGL2RenderingContext;
 
 export type TextureDimension = 2 | 3;
 
+export function textureDimensionToType(dim: TextureDimension): number {
+  switch (dim) {
+    case 2:
+      return WebGL2RenderingContext.TEXTURE_2D;
+    case 3:
+      return WebGL2RenderingContext.TEXTURE_3D;
+  }
+}
+
 export type FormatConfig = {
   internalFormat: number;
   format: number;
@@ -123,6 +132,9 @@ export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void
       for (var i = 0; i < keys.length; i++) {
         const texName = keys[i];
         const stex = params[texName];
+        if (textureDimensionToType(stex.dimension) != texType) {
+          throw new Error("Texture " + texName + " has dimension " + stex.dimension + " but expected " + texType);
+        }
         const ix = i + 1;
         gl.activeTexture(gl.TEXTURE0 + ix);
         gl.bindTexture(texType, stex.texture);
