@@ -16,14 +16,23 @@ export type SizedTexture = {
 
 export type ShaderParameters = {
   textureParameters?: Record<string, SizedTexture>;
+  floatParameters?: Record<string, number>;
+  vec2Parameters?: Record<string, number[]>;
+  vec3Parameters?: Record<string, number[]>;
   vec4Parameters?: Record<string, number[]>;
   intParameters?: Record<string, number>;
 }
 
 // see: https://registry.khronos.org/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE
 export const FormatConfigs = {
+  r_byte: {internalFormat: WebGL2RenderingContext.R8, format: WebGL2RenderingContext.RED, numberType: WebGL2RenderingContext.UNSIGNED_BYTE},
+  rg_byte: {internalFormat: WebGL2RenderingContext.RG8, format: WebGL2RenderingContext.RG, numberType: WebGL2RenderingContext.UNSIGNED_BYTE},
   rgb_byte: {internalFormat: WebGL2RenderingContext.RGB, format: WebGL2RenderingContext.RGB, numberType: WebGL2RenderingContext.UNSIGNED_BYTE},
   rgba_byte: {internalFormat: WebGL2RenderingContext.RGBA, format: WebGL2RenderingContext.RGBA, numberType: WebGL2RenderingContext.UNSIGNED_BYTE},
+  r_float: {internalFormat: WebGL2RenderingContext.R32F, format: WebGL2RenderingContext.RED, numberType: WebGL2RenderingContext.FLOAT},
+  rg_float: {internalFormat: WebGL2RenderingContext.RG32F, format: WebGL2RenderingContext.RG, numberType: WebGL2RenderingContext.FLOAT},
+  rgb_float: {internalFormat: WebGL2RenderingContext.RGB32F, format: WebGL2RenderingContext.RGB, numberType: WebGL2RenderingContext.FLOAT},
+  rgba_float: {internalFormat: WebGL2RenderingContext.RGBA32F, format: WebGL2RenderingContext.RGBA, numberType: WebGL2RenderingContext.FLOAT},
 };
 
 
@@ -130,6 +139,9 @@ export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void
       }
     }
   }
+  setParams(params.floatParameters, gl.uniform1f.bind(gl));
+  setParams(params.vec2Parameters, gl.uniform2fv.bind(gl));
+  setParams(params.vec3Parameters, gl.uniform3fv.bind(gl));
   setParams(params.vec4Parameters, gl.uniform4fv.bind(gl));
   setParams(params.intParameters, gl.uniform1i.bind(gl));
 }
