@@ -16,6 +16,7 @@ export type SizedTexture = {
 
 export type ShaderParameters = {
   textureParameters?: Record<string, SizedTexture>;
+  texture3DParameters?: Record<string, SizedTexture>;
   floatParameters?: Record<string, number>;
   vec2Parameters?: Record<string, number[]>;
   vec3Parameters?: Record<string, number[]>;
@@ -140,7 +141,8 @@ export function setupShaderParameters(gl: GLCtx, params: ShaderParameters): void
       }
     }
   }
-  setTextureParams(params.textureParameters, gl.TEXTURE_2D); // TODO: support other texture types
+  setTextureParams(params.textureParameters, gl.TEXTURE_2D);
+  setTextureParams(params.texture3DParameters, gl.TEXTURE_3D);
   setParams(params.floatParameters, gl.uniform1f.bind(gl));
   setParams(params.vec2Parameters, gl.uniform2fv.bind(gl));
   setParams(params.vec3Parameters, gl.uniform3fv.bind(gl));
