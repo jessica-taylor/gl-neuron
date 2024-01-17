@@ -72,9 +72,9 @@ function main(): void {
 
   console.log('max texture size', gl.getParameter(gl.MAX_TEXTURE_SIZE), '3d', gl.getParameter(gl.MAX_3D_TEXTURE_SIZE));
 
-  var solidTexture = newTexture(gl, width, height, FormatConfigs.rgba_byte);
+  var solidTexture = newTexture(gl, width, height, FormatConfigs.r_float);
   renderSolidColorTexture(gl, solidTexture, [1, 0, 0, 1]);
-  var inverseTexture = newTexture(gl, width, height, FormatConfigs.rgba_byte);
+  var inverseTexture = newTexture(gl, width, height, FormatConfigs.rg_byte);
   renderInverseTexture(gl, solidTexture, inverseTexture);
   console.log('to canvas...');
   renderTextureToCanvas(gl, inverseTexture, drawCanvas);

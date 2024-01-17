@@ -55,6 +55,10 @@ export function newGLContext(): GLCtx {
   if (!gl) {
     throw new Error("Failed to get webgl context");
   }
+  const floatExt = gl.getExtension("EXT_color_buffer_float");
+  if (!floatExt) {
+    throw new Error("Failed to get EXT_color_buffer_float extension");
+  }
   return gl;
 }
 
@@ -214,7 +218,8 @@ export function newTexture(gl: GLCtx, width: number, height: number, formatCfg: 
   }
   gl.bindTexture(gl.TEXTURE_2D, targetTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, formatCfg.internalFormat, width, height, 0, formatCfg.format, formatCfg.numberType, null);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
   return {texture: targetTexture, width, height, format: formatCfg, dimension: 2};
@@ -227,7 +232,8 @@ export function newTexture3D(gl: GLCtx, width: number, height: number, depth: nu
   }
   gl.bindTexture(gl.TEXTURE_3D, targetTexture);
   gl.texImage3D(gl.TEXTURE_3D, 0, formatCfg.internalFormat, width, height, depth, 0, formatCfg.format, formatCfg.numberType, null);
-  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);  // Prevents s-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);  // Prevents t-coordinate wrapping (repeating).
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);  // Prevents r-coordinate wrapping (repeating).
