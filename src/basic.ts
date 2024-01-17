@@ -282,3 +282,18 @@ export function renderTextureToCanvas(gl: GLCtx, stex: SizedTexture, canvas: HTM
   const imageData = new ImageData(new Uint8ClampedArray(pixels), stex.width, stex.height);
   ctx.putImageData(imageData, 0, 0);
 }
+
+export function copyTexture(gl: GLCtx, source: SizedTexture, target: SizedTexture): void {
+  var program = createSquareProgram(gl, `
+    precision mediump float;
+    out vec4 fragColor;
+    uniform int target_width;
+    uniform int target_height;
+    uniform sampler2D u_texture;
+    void main() {
+        vec4 color = texelFetch(u_texture, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0);
+        fragColor = vec4(color.r, color.g, color.b, color.a);
+    }`);
+  var params = {textureParameters: {u_texture: source}};
+  runShaderProgramToTexture(gl, program, target, params);
+}
